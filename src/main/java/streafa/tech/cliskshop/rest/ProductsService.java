@@ -17,6 +17,7 @@ import streafa.tech.cliskshop.pojojson.StockInPrice;
 import streafa.tech.cliskshop.pojojson.StockInStock;
 import streafa.tech.cliskshop.pojojson.StockUpdate;
 import streafa.tech.cliskshop.properties.ClickShopProperties;
+import streafa.tech.cliskshop.token.Token;
 import streafa.tech.polcar.model.PriceProductData;
 import streafa.tech.polcar.model.StockProductData;
 import streafa.tech.polcar.model.repo.PriceListRepo;
@@ -30,19 +31,21 @@ public class ProductsService {
 
     //bean for token
     //
-    private static final String TOKEN = "3af22ecb0108fad3273a11fd02eae08d3772cdd9";
+    private static String TOKEN;
     private ClickShopProperties clickShopProperties;
     private BigDecimal margin;
 
-    private PriceListRepo priceListRepo;
+    private PriceListRepo priceListRepo = null;
     private StockListRepo stockListRepo;
 
     private RestTemplate restTemplate;
+    private RestBearerToken restBearerToken;
 
-    public ProductsService(ClickShopProperties clickShopProperties, PriceListRepo priceListRepo, StockListRepo stockListRepo) {
+    public ProductsService(ClickShopProperties clickShopProperties, PriceListRepo priceListRepo, StockListRepo stockListRepo, RestBearerToken restBearerToken) {
         this.clickShopProperties = clickShopProperties;
         this.priceListRepo = priceListRepo;
         this.stockListRepo = stockListRepo;
+        this.restBearerToken = restBearerToken;
         this.restTemplate = new RestTemplate();
         margin = clickShopProperties.getMargin();
     }
@@ -51,6 +54,14 @@ public class ProductsService {
 
     @EventListener(ApplicationReadyEvent.class)
     public void getProducts() throws JsonProcessingException {
+
+        //pobieram token
+        System.out.println("POBIEAM TOKEN");
+        Token token = restBearerToken.getBearerToken();
+        TOKEN = token.getToken();
+
+        System.out.println("TOKEN = " + TOKEN);
+
         System.out.println("W metodzie do pobieranaia produktow");
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN);
@@ -62,6 +73,7 @@ public class ProductsService {
 
         //przy pierwszym pobraniu mam liczbe stron wiec moge utworzyc kolejne requesty az sciagne wszytkie strony z pordktami:
         // ?page=<nr strony>
+        //TODO - opracowac przypadek z wieloma stronami
 
         ProductsList productsList = productsListResponseEntity.getBody();
         Product[] productArray = productsList.getList();
@@ -75,20 +87,7 @@ public class ProductsService {
             {
                 System.out.println("Znaleziono w stock'ach " + stockProductDataOptional.get());
                 product = productArray[i];
-                product.getProductId(); //id produktu w bazie click shop
-                //PUT https://shop.url/webapi/rest/products/<id>
-                String updateURL = URL + "/" + product.getProductId();
-                StockUpdate stockUpdate = new StockUpdate();
-                StockInStock stockInStock = new StockInStock();
-                stockInStock.setStock(stockProductDataOptional.get().getStock());
-                stockUpdate.setStock(stockInStock);
-
-                String JSON = objectMapper.writeValueAsString(stockUpdate);
-                System.out.println(JSON);
-                HttpEntity httpPUTEntity = new HttpEntity(JSON, httpHeaders);
-                ResponseEntity<String> result = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
-                System.out.println("Po uodate " + result.getBody());
-
+                updateStockProductData(httpHeaders, URL, product, objectMapper, stockProductDataOptional);
             }
             else {
                 System.out.println("W stock'ach nie ma produktu " + productArray[i].getCode());
@@ -102,16 +101,7 @@ public class ProductsService {
             {
                 System.out.println("Znaleziono w price'ach " + priceProductDataOptional.get());
                 product = productArray[i];
-                product.getProductId(); //id produktu w bazie click shop
-                //PUT https://shop.url/webapi/rest/products/<id>
-                String updateURL = URL + "/" + product.getProductId();
-                PriceUpdate priceUpdate = new PriceUpdate();
-                StockInPrice stockInPrice = new StockInPrice();
-                stockInPrice.setPrice(priceProductDataOptional.get().getPrice().multiply(margin));
-                priceUpdate.setStock(stockInPrice);
-
-                String JSON = objectMapper.writeValueAsString(priceUpdate);
-                System.out.println(JSON);
+                updatePriceProductData(httpHeaders, URL, product, objectMapper, priceProductDataOptional);
             }
             else {
                 System.out.println("W price'ach nie ma produktu " + productArray[i].getCode());
@@ -127,8 +117,33 @@ public class ProductsService {
         //System.out.println(productsListResponseEntity.getBody());
     }
 
+    private void updateStockProductData(HttpHeaders httpHeaders, String URL, Product product, ObjectMapper objectMapper, Optional<StockProductData> stockProductDataOptional) throws JsonProcessingException {
+        String updateURL = URL + "/" + product.getProductId();
+        StockUpdate stockUpdate = new StockUpdate();
+        StockInStock stockInStock = new StockInStock();
+        stockInStock.setStock(stockProductDataOptional.get().getStock());
+        stockUpdate.setStock(stockInStock);
 
+        String JSON = objectMapper.writeValueAsString(stockUpdate);
+        System.out.println(JSON);
+        HttpEntity httpPUTEntity = new HttpEntity(JSON, httpHeaders);
+        ResponseEntity<String> resultStock = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
+        System.out.println("Po stock update " + resultStock.getBody());
+    }
 
+    private void updatePriceProductData(HttpHeaders httpHeaders, String URL, Product product, ObjectMapper objectMapper, Optional<PriceProductData> priceProductDataOptional) throws JsonProcessingException {
+        String updateURL = URL + "/" + product.getProductId();
+        PriceUpdate priceUpdate = new PriceUpdate();
+        StockInPrice stockInPrice = new StockInPrice();
+        stockInPrice.setPrice(priceProductDataOptional.get().getPrice().multiply(margin));
+        priceUpdate.setStock(stockInPrice);
+
+        String JSON = objectMapper.writeValueAsString(priceUpdate);
+        System.out.println(JSON);
+        HttpEntity httpPUTEntity = new HttpEntity(JSON, httpHeaders);
+        ResponseEntity<String> resultPrice = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
+        System.out.println("Po price update " + resultPrice.getBody());
+    }
 
 
 }

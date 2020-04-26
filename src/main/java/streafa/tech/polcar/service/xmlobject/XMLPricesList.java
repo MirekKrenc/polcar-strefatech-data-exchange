@@ -63,6 +63,10 @@ public class XMLPricesList {
 			PricesRoot prices = (PricesRoot) unmarshaller.unmarshal(reader);
 			List<CENA> pricesList = prices.getCENA();
 			System.out.println("Liczba rekordow w price list = " + pricesList.size());
+
+			//first delete all records from table
+			priceListRepo.deleteAll();
+
 			for (CENA cena : pricesList)
 			{
 				priceListRepo.save(new PriceProductData(cena.getNumber(), cena.getPrice()));

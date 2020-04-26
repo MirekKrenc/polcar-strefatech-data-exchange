@@ -59,6 +59,10 @@ public class XMLStockLevels {
 			StockLevelRoot stockLevel = (StockLevelRoot) unmarshaller.unmarshal(reader);
 			List<StockLevel> stocklist = stockLevel.getITEM();
 			System.out.println("Liczba rekordow w stock list = " + stocklist.size());
+
+			//remove all data from table
+			stockListRepo.deleteAll();
+
 			for (StockLevel sl: stocklist)
 			{
 				stockListRepo.save(new StockProductData(sl.getNumber(), sl.getQuantity()));

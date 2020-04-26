@@ -33,3 +33,6 @@ build/
 ## application propeties ###
 src/main/resources/application.properties
 
+## database ##
+polcar.mv.db
+
