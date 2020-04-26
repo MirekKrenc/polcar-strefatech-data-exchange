@@ -35,4 +35,5 @@ src/main/resources/application.properties
 
 ## database ##
 polcar.mv.db
+polcar.trace.db
 

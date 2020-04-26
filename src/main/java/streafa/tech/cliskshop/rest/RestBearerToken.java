@@ -49,11 +49,12 @@ public class RestBearerToken {
             token = tokenDBOptional.get();
             if (checkIfTokenIsValid(token))
             {
+                System.out.println("TOKENE BIORE Z BAZY DANYCH: " + token.getToken());
                 return token;
             }
         }
 
-        //TODO jestem tu czyli trzeba pobrac nowy token ze sklepu , zapisac do bazy danych i zwrocic ten token do reszty funkcji
+        //TODO jestem tu czyli trzeba pobrac nowy token ze sklepu , usinąc stary i zapisac nowy do bazy danych i zwrocic ten token do reszty funkcji
         HttpHeaders headers = new HttpHeaders();
         String auth = clickShopProperties.getLogin() + ":" + clickShopProperties.getPassword();
         byte [] authentication = auth.getBytes();
@@ -71,9 +72,11 @@ public class RestBearerToken {
         LocalDateTime expirationDate = current.plusSeconds(bearerToken.getExpiresIn());
         //to bedzie zwracane z requestu
         token = new Token(1L, bearerToken.getAccessToken(), current.getYear(), current.getDayOfYear(), expirationDate.getDayOfYear());
+        //usuwanie starego - motoda deleteAll ale jest tylko 1 rekord
+        tokenRepository.deleteAll();
         // zapis do bazy
         tokenRepository.save(token);
-
+        //zwracam nowy token
         return token;
     }
 

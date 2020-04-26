@@ -33,7 +33,7 @@ public class ClickShopProperties {
         this.token_url = token_url;
     }
 
-    @EventListener(ApplicationReadyEvent.class)
+//    @EventListener(ApplicationReadyEvent.class)
     public void listProps()
     {
         System.out.println(login);
