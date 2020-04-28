@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import streafa.tech.cliskshop.json.Product;
 import streafa.tech.cliskshop.json.ProductsList;
@@ -24,6 +25,7 @@ import streafa.tech.polcar.model.repo.PriceListRepo;
 import streafa.tech.polcar.model.repo.StockListRepo;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 @Service
@@ -56,7 +58,7 @@ public class ProductsService {
     public void getProducts() throws JsonProcessingException {
 
         //pobieram token
-        System.out.println("POBIEAM TOKEN");
+        System.out.println("POBIERAM TOKEN");
         Token token = restBearerToken.getBearerToken();
         TOKEN = token.getToken();
 
@@ -127,22 +129,44 @@ public class ProductsService {
         String JSON = objectMapper.writeValueAsString(stockUpdate);
         System.out.println(JSON);
         HttpEntity httpPUTEntity = new HttpEntity(JSON, httpHeaders);
-        ResponseEntity<String> resultStock = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
-        System.out.println("Po stock update " + resultStock.getBody());
+        ResponseEntity<String> resultStock = null;
+        try {
+            resultStock = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
+        }
+        catch (HttpClientErrorException he) {
+            System.out.println("Blad HttpClientErrorException przy zmianie stock dla "+ product.getCode());
+            System.out.println(he.getMessage());
+        }
+        catch (Exception e) {
+            System.out.println("Blad ogólny Exception przy zmianie stock dla "+ product.getCode());
+            System.out.println(e.getMessage());
+        }
+        if (resultStock != null ) System.out.println("Po stock update " + resultStock.getBody());
     }
 
     private void updatePriceProductData(HttpHeaders httpHeaders, String URL, Product product, ObjectMapper objectMapper, Optional<PriceProductData> priceProductDataOptional) throws JsonProcessingException {
         String updateURL = URL + "/" + product.getProductId();
         PriceUpdate priceUpdate = new PriceUpdate();
         StockInPrice stockInPrice = new StockInPrice();
-        stockInPrice.setPrice(priceProductDataOptional.get().getPrice().multiply(margin));
+        stockInPrice.setPrice(priceProductDataOptional.get().getPrice().multiply(margin).setScale(0, RoundingMode.UP));
         priceUpdate.setStock(stockInPrice);
 
         String JSON = objectMapper.writeValueAsString(priceUpdate);
         System.out.println(JSON);
         HttpEntity httpPUTEntity = new HttpEntity(JSON, httpHeaders);
-        ResponseEntity<String> resultPrice = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
-        System.out.println("Po price update " + resultPrice.getBody());
+        ResponseEntity<String> resultPrice = null;
+        try {
+            resultPrice = restTemplate.exchange(updateURL, HttpMethod.PUT, httpPUTEntity, String.class);
+        }
+        catch (HttpClientErrorException he) {
+            System.out.println("Blad HttpClientErrorException przy zmianie price dla "+ product.getCode());
+            System.out.println(he.getMessage());
+        }
+        catch (Exception e) {
+            System.out.println("Blad ogólny Exception przy zmianie price dla "+ product.getCode());
+            System.out.println(e.getMessage());
+        }
+        if (resultPrice != null) System.out.println("Po price update " + resultPrice.getBody());
     }
 
 

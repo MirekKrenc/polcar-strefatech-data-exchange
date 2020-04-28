@@ -49,7 +49,7 @@ public class RestBearerToken {
             token = tokenDBOptional.get();
             if (checkIfTokenIsValid(token))
             {
-                System.out.println("TOKENE BIORE Z BAZY DANYCH: " + token.getToken());
+                System.out.println("TOKEN BIORE Z BAZY DANYCH: " + token.getToken());
                 return token;
             }
         }
